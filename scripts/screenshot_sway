@@ -1,0 +1,6 @@
+#!/bin/bash
+
+TIME="$(date -Ins)"
+
+~/apps/grim/build/grim ~/$TIME.png
+

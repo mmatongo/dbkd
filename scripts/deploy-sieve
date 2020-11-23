@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Deploy sieve folder $1 to remote location $2 but check it passes tests
+
+set -e
+
+SCRIPT="$1/main.sieve"
+TESTS="$1/test.dat"
+CONFIG="$1/dovecot.conf"
+MACHINE="$2"
+
+grep -v '^#' "$TESTS" | while read test
+do
+  FILE=$(echo "$test" | cut -d' ' -f1)
+  FOLDER=$(echo "$test" | cut -d' ' -f2)
+  EXPECTED="store message in folder: $FOLDER"
+  if sieve-test -c "$CONFIG" "$SCRIPT" "$FILE" 2>&1 |
+      grep "final result: success" > /dev/null
+  then
+    if sieve-test -c "$CONFIG" "$SCRIPT" "$FILE" 2>/dev/null |
+      grep "$EXPECTED" > /dev/null
+    then
+      continue
+    fi
+  fi
+  echo "TEST FAILED for $FILE"
+  sieve-test -c "$CONFIG" "$SCRIPT" "$FILE"
+  echo "expected: $EXPECTED"
+  exit 1
+done
+
+# exit if loop subshell exited
+if [[ $? -eq 1 ]]; then
+  exit 1
+fi
+
+echo "Passed all tests: `wc -l $TESTS`"
+
+cd "$1"
+git commit -m 'update sieve' *.sieve
+git push
+ssh "$MACHINE" "cd $1; git pull"
+ssh "$MACHINE" "sudo service dovecot reload"
+echo "sieve deployment successful"
+
+

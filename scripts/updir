@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# copy all contents of $1 on $2
+# giving unique name to directories
+# and put stuff in cache
+# with hardcoded list of exclusions
+
+set -x
+set -e
+
+FOLDER="$1"
+DEST="$2"
+shift
+shift
+
+cd "$FOLDER"
+# copy files to destination
+rsync -avzPy --progress --backup --exclude="cache/" --exclude="/papers/**" --exclude="wikipedia/**" ./ "$DEST"
+
+# move files to cache
+# TODO: this is inefficient and should be done with mv invocations
+# use, e.g., http://unix.stackexchange.com/a/155633/8446
+rsync -avzPy --remove-source-files --exclude="cache/" --exclude="/papers/**" --exclude="wikipedia/**" $EXCLUDE ./ "cache/"
+
+# now, remove remaining empty directories
+# find ./ -type d -empty -exec rmdir '{}' +
+# this doesn't really work, but anyway, the folder structure may still be useful
+

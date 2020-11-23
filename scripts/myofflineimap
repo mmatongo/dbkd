@@ -1,0 +1,9 @@
+#!/bin/bash
+
+while true
+do
+offlineimap 2>&1 >> ~/logs/offlineimap
+echo "offlineimap exited, restarting in 60 seconds" >> ~/logs/offlineimap
+sleep 60
+done
+

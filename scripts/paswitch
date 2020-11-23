@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# search for a sink called "$1", set it as default and move everything to it
+
+RES=$(pals "$1" | awk '{print $1}')
+NRES=$(echo "$RES" | wc -l)
+if [ $NRES -lt 1 ]
+then
+  echo "no such sink found, here are the sinks:"
+  pals
+  exit 1
+fi
+if [ $NRES -gt 1 ]
+then
+  echo "multiple sinks found, be more precise:"
+  pals "$1"
+  exit 1
+fi
+
+palsi | pamsi "$RES"
+
+pacmd set-default-sink "$RES"
+

@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# prt - Check what programs are using what ports
+# (c) Kied Llaentenn (@kiedtl):
+
+ss -tulpn | grep LISTEN

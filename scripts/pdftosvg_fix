@@ -1,0 +1,46 @@
+#!/bin/bash
+# PDF to SVG using pdftocairo
+# Usage: pdftosvg_fix INPUT OUTPUT
+# only for single-page documents
+# inspired by http://bazaar.launchpad.net/~suv-lp/+junk/inkscape-extensions/view/head:/pdf-input/pdf2svg-ext-custom.py
+# depends on xmlstarlet
+# thanks a lot to su_v on freenode #inkscape for help
+
+SCALE=100
+INPUT="$1"
+OUTPUT="$2"
+
+# a bit pedestrian but it works...
+while true
+do
+  W=$(pdfinfo "$INPUT" | grep '^Page size' | cut -d':' -f2 | awk '{print $1}')
+  H=$(pdfinfo "$INPUT" | grep '^Page size' | cut -d':' -f2 | awk '{print $3}')
+  WW=$(echo "$W * $SCALE" | bc | sed 's/\.0*$//')
+  HH=$(echo "$H * $SCALE" | bc | sed 's/\.0*$//')
+  if echo "$WW $HH" | grep '\.' > /dev/null
+  then
+    SCALE=$(($SCALE*10))
+    # loop again
+  else
+    break
+  fi
+done
+
+# now SCALE is >= 100 and all dimensions are integers
+
+rm -f "$OUTPUT"
+pdftocairo -svg -paperw "$WW" -paperh "$HH" -expand "$INPUT" "$OUTPUT" \
+    || (echo "pdftocairo invocation failed" && exit 2)
+
+if [ ! -f "$OUTPUT" ]
+then
+  # pdftocairo sometimes fails silently
+  echo "pdftocairo invocation silently failed"
+  exit 2
+fi
+
+xmlstarlet ed --inplace -N N="http://www.w3.org/2000/svg" \
+  --update '//N:svg/@width' --value "${W}pt" "$OUTPUT"
+xmlstarlet ed --inplace -N N="http://www.w3.org/2000/svg" \
+  --update '//N:svg/@height' --value "${H}pt" "$OUTPUT"
+

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+D=$(date '+%Y-%m-%d')
+DIR="$HOME/photos_android"
+mkdir -p "$DIR"
+cd "$DIR"
+adb pull /sdcard/DCIM/ "$D/" && sudo chown -R $USER:$USER "$D"
+echo "warning: adb should finish by giving a summary (N files pulled, 0 files skipped) otherwise it may have failed silently"
+echo "if everything is OK, you can review the photos in $DIR/$D and then delete them from the phone"

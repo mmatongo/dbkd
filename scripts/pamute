@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# mute active sinks
+
+pagas | cut -d ' ' -f1 | while read s; do
+  pactl set-sink-mute $s "$1"
+done
+

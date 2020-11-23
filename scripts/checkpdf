@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# check common problems with PDFs before submitting a camera-ready
+
+FILE="$1"
+TMP="`mktemp`.pdf"
+
+echo "CHECK number of pages"
+identify -verbose "$FILE" | grep "Print size" | wc -l
+echo "CHECK paper size"
+identify -verbose "$FILE" | grep "Print size"
+echo "CHECK print area size"
+pdfcrop "$FILE" "$TMP"
+identify -verbose "$TMP" | grep "Print size"
+rm "$TMP"
+echo "CHECK metainfo"
+exiftool "$FILE" | grep -E "^Title|^Author"
+echo "CHECK metainfo bugs"
+exiftool "$FILE" | grep "^Warning"
+echo "CHECK font embedding"
+# magic: http://stackoverflow.com/a/14435749
+pdffonts "$FILE" | sed '1,2d' | grep '  no'
+echo "CHECK font type"
+pdffonts "$FILE" | sed '1,2d' | grep -v 'Type 1'
+

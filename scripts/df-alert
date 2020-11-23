@@ -1,0 +1,30 @@
+#!/bin/bash
+
+EMAIL=${1:-a3nm@localhost}
+THRESHOLD=${2:-97}
+
+function do_check() {
+  CURRENT=$(df "$1" | grep / | awk '{ print $5}' | sed 's/%//g')
+  
+  if [ "$CURRENT" -gt "$THRESHOLD" ] ; then
+    mail -s "[df-alert] `hostname`:$1 using $CURRENT%" "$EMAIL" << EOF
+df-alert notification: `hostname`:$1 uses $CURRENT%
+EOF
+  fi
+}
+
+do_check '/'
+do_check '/home'
+
+# encrypted partition on raspberry pi
+if [ -d /data ]
+then
+  do_check '/data'
+fi
+
+# other disks
+df | awk '{print $6}' | grep '^/mnt' | while read l
+do
+  do_check "$l"
+done
+

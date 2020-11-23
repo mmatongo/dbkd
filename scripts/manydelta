@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# usage: manydelta test_program input_file
+# runs singledelta -in_place -test=$1 $2 until convergence
+
+while true
+do
+  OLD=$(wc -l <"$2")
+  singledelta -in_place -test="$1" "$2"
+  NEW=$(wc -l <"$2")
+  if [ $NEW -eq $OLD ]
+  then
+    break
+  fi
+done
+

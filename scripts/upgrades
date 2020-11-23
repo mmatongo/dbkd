@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# upgrade all hosts specified in ARGV
+
+screen -S apt -dm 'zsh'
+
+for m in $@
+do
+  screen -S apt -x -X screen -t $m zsh -c \
+    "echo \"=== upgrading $m ===\n\n\";
+     ~/bin/wake $m;
+     sleep 5;
+     ssh -t $m 'sudo apt-get autoclean && sudo apt autoremove && sudo apt update && sudo apt dist-upgrade';
+     echo \"\n\n=== testing connection to $m ... ===\n\n\";
+     ssh -t $m 'echo this is fine';
+     echo \"\n\n=== done upgrading $m ===\n\n\";
+     exec zsh"
+done
+
+screen -x apt
+

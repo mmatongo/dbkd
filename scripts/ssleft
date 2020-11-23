@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# check number of days left on SSL certificate of website $1
+# with port $2 (default: 443)
+# if $3 is specified, will warn if days left is < $3
+
+HOST="$1"
+PORT=${2:-443}
+MARGIN=${3:-0}
+MARGIN_S=$((24*60*60 * $MARGIN))
+
+CERT=$(echo | openssl s_client -connect $HOST:$PORT -servername $HOST 2>/dev/null)
+  
+DATES=$(echo "$CERT" | openssl x509 -noout -dates)
+
+if [[ $MARGIN -eq 0 ]]
+then
+  echo "$DATES"
+  echo "$CERT"
+  exit 0
+fi
+
+if ! (echo "$CERT" | openssl x509 -noout -checkend $MARGIN_S >/dev/null)
+then
+  echo "== cert for $HOST:$PORT will expire in <= $MARGIN days =="
+  echo "details of cert are:"
+  echo "$DATES"
+  echo "$CERT"
+  exit 3
+fi
+
+

@@ -1,0 +1,63 @@
+#!/usr/bin/perl
+# http://louis.jachiet.com/blog/?p=228
+# by Louis Jachiet, public domain
+# requires liburi-perl libmime-tools-perl
+
+# read mail on stdin, produce summary on stdout
+ 
+use MIME::Parser;
+use URI::Escape;
+use Encode qw(decode);
+
+# http://stackoverflow.com/a/4597964/414272
+sub trim {
+    (my $s = $_[0]) =~ s/^\s+|\s+$//g;
+    return $s;        
+}
+ 
+my $parser = new MIME::Parser;
+$parser->output_under("/tmp");
+$entity = $parser->parse(\*STDIN) or die "parse failed\n";
+$subject = decode("MIME-Header",$entity->get('Subject'));
+$from = decode("MIME-Header",$entity->get('From'));
+$body = "";
+ 
+sub explore_mail
+{
+    my $mpart = $_[0] ;
+    if( defined($mpart->parts()) && $mpart->parts() > 0)
+    {
+        foreach $int ($mpart->parts())
+        {
+            if($int->head->mime_type eq"text/plain")
+            {
+                $path = $int->bodyhandle->path ;
+                open RUTF8, ("<".$path) or die $! ;
+                while (my $line = <RUTF8>)
+                {
+                    $body = $body." ".$line ;
+                }
+                if($int->head->mime_type eq"multipart/alternative" )
+                {
+                    explore_mail ($int);
+                }
+            }
+        }
+    }
+    else
+    {   
+        $body = $body.(join " ",  @{$mpart->body});
+    }
+}
+ 
+explore_mail $entity ;
+ 
+if(!($body eq ""))
+{
+    $sms = "[". (trim($from)) ."] ". (trim($subject)) ." >>> ".$body ;
+    $sms =~ s/\n/ /g;
+    $sms =~ s/  / /g;
+    $sms = substr($sms,0,400);
+    print ($sms);
+}
+$entity->purge;

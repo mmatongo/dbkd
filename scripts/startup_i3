@@ -1,0 +1,17 @@
+#!/bin/bash
+
+~/bin/layout
+~/bin/startup
+
+if [ `whoami` = a3nm ]
+then
+  COLOR="#000000"
+else
+  # easy reminder that this is not my real session
+  COLOR="#400000"
+fi
+
+xsetroot -solid "$COLOR" &
+# when using compton
+hsetroot -solid "$COLOR" &
+

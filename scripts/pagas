@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# get pulseaudio active sink
+
+pactl list short | grep RUNNING | awk '{printf "%s <%s>\n", $1, $2}'
+

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+~/bin/fix_ux330u
+
+#~/bin_private/proxy.sh
+~/bin/notmuch-new.sh &
+urxvtd &
+~/bin_private/myfetchmail
+~/bin/rehashpath
+nm-applet &
+rm ~/temp/terminals
+
+# no longer working: ~/bin_private/logkeys
+# no longer working: ~/bin/kiwix
+
+# pulseaudio cannot start by itself due to the uncommon socket folder
+pulseaudio &
+
+# is there a better way to reset xhost permissions?
+xhost +si:localuser:`whoami`
+xhost | sed 1d | grep -v `whoami` | while read l; do
+  xhost "-$l"
+done
+
+# for now, browser can access the X server
+# TODO: use wayland
+xhost +si:localuser:browser
+xhost +si:localuser:browser2
+xhost +si:localuser:bitcoin
+xhost +si:localuser:browser_tor
+

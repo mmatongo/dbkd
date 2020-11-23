@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# send all subvolumes incrementally from SOURCE to DEST
+
+set -e
+
+SOURCE="$1"
+DEST="$2"
+
+paste <(ls "$SOURCE" ) <(ls "$SOURCE" | sed 1d) | sed '$d' |
+while read l; do
+  PARENT=$(echo "$l" | cut -f1);
+  VOLUME=$(echo "$l" | cut -f2);
+  if [ ! -d "$DEST/$VOLUME" ]
+  then
+    if [ ! -d "$DEST/$PARENT" ]
+    then
+      echo "putative parent $DEST/$PARENT does not exist on destination!"
+      exit 2
+    fi
+    echo "[($SOURCE/$PARENT) $SOURCE/$VOLUME => $DEST/$VOLUME]"
+    sudo btrfs send -p "$SOURCE/$PARENT" "$SOURCE/$VOLUME" |
+    pv | sudo btrfs receive "$DEST"
+  fi
+done
+

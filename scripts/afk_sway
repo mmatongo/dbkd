@@ -1,0 +1,5 @@
+#!/bin/bash
+
+killall -s HUP gpg-agent
+
+swaylock -c 00000000 --font Terminus --inside-color ffffffff --inside-clear-color ffff00ff --inside-wrong-color ff000000 --inside-ver-color 00ff00ff --bs-hl-color ff0000ff -r --indicator-thickness 10 --indicator-radius 40

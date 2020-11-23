@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# move $2 to folder $1, creating any missing folders
+D=$(dirname "$2")
+mkdir -p "$1/$D"
+mv "$2" "$1/$D"
+#echo "HIERARCHIVE '$1' '$2'"
+

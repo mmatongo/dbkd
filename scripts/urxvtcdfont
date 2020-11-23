@@ -1,0 +1,17 @@
+#!/bin/bash
+
+DB=$HOME/config/private/urxvtfontsize
+HOST=$(hostname | cut -d'.' -f1)
+ARGS=""
+
+if [ -f $DB ]
+then
+  if grep "^$HOST\s" "$DB" > /dev/null
+  then 
+    SIZE=$(grep "^$HOST\s" "$DB" | awk '{print $2}')
+    ARGS="-fn xft:Terminus:size=$SIZE"
+  fi
+fi
+
+exec urxvtcd $ARGS "$@"
+

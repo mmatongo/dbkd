@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if ! sudo docker ps | grep '\sa3nm-tidy-html5-testing$' > /dev/null
+then
+  sudo docker start a3nm-tidy-html5-testing >/dev/null || {
+      echo "cannot start the tidy container" >&2; exit 3;
+    }
+fi
+
+docker exec -i a3nm-tidy-html5-testing /usr/local/bin/tidy \
+  --doctype html5 -utf8 -errors -quiet
+

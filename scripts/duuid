@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# get disk uuid from volume name
+
+VOLUME="$1"
+HOST=$(hostname | cut -d'.' -f1)
+FOLDER="$HOME/config/private/duuid"
+
+# hack: search first in local file, then in all files
+ID="$(grep "^$VOLUME " $FOLDER/$HOST $FOLDER/* | cut -d' ' -f2 | head -1)"
+
+if [[ -z "$ID" ]]
+then
+  >&2 echo "no volume $VOLUME"
+  # just in case
+  echo "/dev/zero"
+  exit 2
+fi
+
+echo "/dev/disk/by-uuid/$ID"
+
+exit 0
+

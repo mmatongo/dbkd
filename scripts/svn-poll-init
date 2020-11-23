@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# initialize $URL without getting spammed by backlog
+# inits to the current revision in an unmuted state
+
+URL="$1"
+BASE=$(base64 <<<"$URL" | tr -d '\n')
+DIR="$HOME/temp/svn-poll/$BASE"
+FILE="$DIR/rev"
+ERRORS="$DIR/errors"
+
+mkdir -p "$DIR"
+
+LATEST="$(svn info "$URL" | grep Revision | cut -d' ' -f2)"
+
+# http://stackoverflow.com/a/806923/414272
+re='^[0-9]+$'
+if ! [[ $LATEST =~ $re ]] ; then
+  # bail out
+  echo "problem when fetching latest revision: got $LATEST" >&2
+  exit 1
+fi
+
+echo "$LATEST" > "$FILE"
+echo "" > "$ERRORS"
+

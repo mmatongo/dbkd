@@ -1,0 +1,135 @@
+#!/bin/bash
+
+# dropbox wrapper script
+# check that Dropbox is correctly sandboxed, mount the endpoint if required, and
+# pass commands to the Dropbox client
+# see http://a3nm.net/blog/dropbox_sandbox.html
+# this script is not part of Dropbox and not endorsed by Dropbox, inc.
+
+# sandbox user is "dropbox"
+VOLUME="/home" # where quotas are setup
+ID=`whoami`
+PRIVATE="/home/$ID/.ssh/id_rsa" # an existing file that you want to protect
+QUOTA="4096000" # dropbox's quota, in bytes
+ENDPOINT="$HOME/mnt/dropbox" # where to mount dropbox (do not use '~')
+DCMD="sudo su dropbox -s /bin/bash -c"
+PRIVPORT="23" # a port that dropbox shouldn't be able to access
+
+if groups dropbox | tr -d ':' | tr ' ' '\n' | grep -v '^$' |
+    grep -v dropbox > /dev/null
+then
+  echo "dropbox should be in group dropbox, actual groups are:"
+  groups dropbox
+  echo aborted
+  exit 1
+fi
+
+if [ ! -f "$PRIVATE" ]
+then
+  echo "\$PRIVATE is not correctly set: cannot reach $PRIVATE"
+  echo aborted
+  exit 2
+fi
+
+if $DCMD "ls $PRIVATE >/dev/null 2>/dev/null"
+then
+  echo "dropbox shouldn't be able to access $PRIVATE"
+  echo aborted
+  exit 2
+fi
+
+BADL=$(xhost 2>/dev/null | sed 1d | grep -v "SI:localuser:$ID" |
+  grep -vE "SI:localuser:(browser|browser2|bitcoin)" | wc -l)
+if [ $BADL -gt 0 ]
+then
+  echo "bad xhost permissions:"
+  xhost
+  echo aborted
+  exit 3
+fi
+
+if $DCMD xinput 2>/dev/null >/dev/null
+then
+  echo "dropbox shouldn't be able to connect to the X server but can:"
+  $DCMD xinput
+  echo aborted
+  exit 4
+fi
+
+if ! (quotaon -p "$VOLUME" | grep '^user' | grep 'is on' >/dev/null)
+then
+  echo "quotas are not enabled for $VOLUME:"
+  quotaon -p "$VOLUME"
+  echo aborted
+  exit 5
+fi
+
+RQUOTA=$($DCMD "quota --show-mntpoint" |
+  grep -A1 "$VOLUME" | sed 1d | awk '{print $3}' | tr -dc '0-9\n')
+
+# http://stackoverflow.com/a/806923
+re='^[0-9]+$'
+if ! [[ $RQUOTA =~ $re ]]
+then
+  echo "could not understand quota for dropbox"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if [ ! "$RQUOTA" -gt 0 ]
+then
+  echo "no quota for dropbox seems set"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if [ ! "$RQUOTA" -le "$QUOTA" ]
+then
+  echo "quota limit for dropbox is $RQUOTA which is >$QUOTA"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if ! ($DCMD "cat /proc/\$\$/cgroup" |
+    grep 'memory:/dropbox' >/dev/null)
+then
+  echo "dropbox processes are not in the dropbox cgroup for memory:"
+  $DCMD "cat /proc/\$\$/cgroup"
+  echo aborted
+  exit 7
+fi
+
+if $DCMD "curl portquiz.net:80 2>/dev/null >/dev/null"
+then
+  if $DCMD "curl portquiz.net:$PRIVPORT 2>/dev/null >/dev/null"
+  then
+    echo "dropbox port $PRIVPORT is not filtered"
+    echo aborted
+    exit 8
+  fi
+else
+  echo "dropbox cannot access portquiz.net:80, are you connected?"
+  echo aborted
+  exit 9
+fi
+
+# now everything is in order
+
+grep -qs " $ENDPOINT fuse " /proc/mounts || (
+  echo "$ENDPOINT was not mounted, mounting it"
+  sudo bindfs --create-for-user=$(id -u dropbox) \
+    --create-for-group=$(id -g dropbox) \
+    --create-with-perms='f-x' --chown-deny --chgrp-deny \
+    --chmod-filter='of-x,gf-x,uf-x' -p 'f-x' \
+    -u $(id -u) -g $(id -g) \
+    ~dropbox/Dropbox "$ENDPOINT"
+)
+
+# pass command though
+ARGS=$(printf " %q" "$@")
+$DCMD "DISPLAY='' ~/dropbox.py $ARGS"
+
+

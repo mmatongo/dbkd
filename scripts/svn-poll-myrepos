@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# mail about changes to all repos registered in myrepos configuration
+
+set -e
+
+LOCKDIR="$HOME/temp/lock"
+mkdir -p "$LOCKDIR"
+
+CONFIG="$HOME/.mrconfig"
+LOCK="$LOCKDIR/svn-poll-myrepos"
+USERS="$HOME/config/private/svnrepos"
+
+lockfile -r 0 "$LOCK" || { echo "could not acquire lock"; exit 1; }
+cleanupfun() {
+  rm -f "$LOCK" || true
+}
+trap cleanupfun ERR EXIT
+
+cd
+grep '^\[svn/' "$CONFIG" | tr -d '[]' | while read REPO; do
+  URL=$(svn info "$REPO" | grep '^URL' | cut -d':' -f2- | tr -d ' ')
+  USER=$(grep "^$URL" "$USERS" | cut -d' ' -f2)
+  #echo "$URL" "$USER"
+  $HOME/bin/svn-poll "$URL" "$USER"
+done
+
+# cleanup by cleanupfun
+

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# retry command $NTIMES times until it succeeds
+# show stderr and stdout from the attempt that succeeded, or the last attempt
+
+NTIMES="$1"
+STATUS=0
+ERROUT=$(mktemp)
+STAOUT=$(mktemp)
+
+shift
+
+for a in `seq $NTIMES`
+do
+  if [ $a -gt 1 ]
+  then
+    sleep 1
+  fi
+  "$@" 2>$ERROUT >$STAOUT
+  STATUS="$?"
+  if [ $STATUS -eq 0 ]
+  then
+    break
+  fi
+done
+
+cat "$STAOUT"
+cat "$ERROUT" >&2
+rm -f "$ERROUT" "$STAOUT"
+exit "$STATUS"
+

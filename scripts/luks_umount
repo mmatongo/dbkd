@@ -1,0 +1,15 @@
+#!/bin/bash
+
+VOLUME="$1"
+MACHINE="$2"
+if [ -z $MACHINE ]
+then
+  COMMAND=""
+else
+  COMMAND="ssh $MACHINE"
+fi
+MOUNTPOINT="/mnt/$VOLUME"
+
+$COMMAND sudo umount "$MOUNTPOINT"
+$COMMAND sudo cryptsetup close "$VOLUME"
+

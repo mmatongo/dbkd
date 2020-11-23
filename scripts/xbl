@@ -1,0 +1,20 @@
+#!/usr/bin/zsh
+
+# adjust backlight to percentage
+
+PERCENTAGE="$1"
+
+xbacklight -steps 1 -time 0 -set "$PERCENTAGE" 2>/dev/null
+if [ $? -eq 0 ]; then
+  exit 0
+fi
+
+# do things differently
+ls /sys/devices/pci*/**/intel_backlight/brightness | while read l
+do
+  MAX=$(cat ${l%brightness}max_brightness)
+  VAL=$(($MAX * $PERCENTAGE / 100))
+  VALN=$(printf '%.*f\n' 0 "$VAL")
+  echo "$VALN" | sudo tee $l > /dev/null
+done
+

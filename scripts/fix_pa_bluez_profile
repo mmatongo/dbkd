@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# set pulseaudio profile for bluetooth headset to A2DP
+
+pacmd list-cards | grep -A1 index: | grep -B1 bluez | cut -d':' -f2 |
+  grep -v '<' | while read CARD
+do
+echo $CARD
+#pacmd set-card-profile "$CARD" a2dp_sink
+done

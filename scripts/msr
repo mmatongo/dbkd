@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+then
+  ~/bin/my-mutt -e "push <change-folder>=empty<enter><vfolder-from-query>"
+else
+  ~/bin/my-mutt -e "push '<change-folder>=empty<enter><vfolder-from-query>$*<enter>'"
+fi

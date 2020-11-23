@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# mute a warning
+exec /usr/bin/chktex -n24 "$@"
+

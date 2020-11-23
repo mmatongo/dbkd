@@ -1,0 +1,43 @@
+#!/usr/bin/python3
+
+"""Produce text list of article names in a wikipedia category"""
+
+# license: public domain
+
+import json
+import urllib.request,urllib.parse
+import sys
+import time
+from pprint import pprint
+
+if len(sys.argv) != 3:
+  print("Usage: %s WIKI CATEGORY" % sys.argv[0], file=sys.stderr)
+  print("WIKI should be like \"en.wikipedia.org\"", file=sys.stderr)
+  sys.exit(1)
+
+progname, wiki, categ = sys.argv
+
+def retrieve(cont=''):
+  args = {'action': 'query',
+      'list': 'categorymembers',
+      'cmtitle': 'Category:%s' % categ,
+      'cmlimit': 500,
+      'format': 'json'
+      }
+  if cont != '':
+    args['cmcontinue'] = cont
+  data = json.loads(urllib.request.urlopen(
+        "https://"+wiki+"/w/api.php?",
+        urllib.parse.urlencode(args).encode('utf8')
+      ).read().decode('utf8'))
+  if 'error' in data.keys():
+    print("Error: %s" % (data['error']['info']), file=sys.stderr)
+    sys.exit(1)
+  for a in data['query']['categorymembers']:
+    print(a['title'])
+  if 'continue' in data.keys():
+    time.sleep(2)
+    retrieve(data['continue']['cmcontinue'])
+
+retrieve()
+

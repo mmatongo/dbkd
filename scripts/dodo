@@ -1,0 +1,14 @@
+#!/bin/bash
+
+sudo echo
+
+# forget GPG passphrase
+killall -s HUP gpg-agent
+
+xtrlock &
+
+sudo pm-suspend
+
+layout
+synclient TapButton2=2
+

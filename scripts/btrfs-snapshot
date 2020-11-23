@@ -1,0 +1,4 @@
+#!/bin/bash
+
+btrfs subvolume snapshot -r $1 $1/snapshots/snapshot-`date +%s`
+

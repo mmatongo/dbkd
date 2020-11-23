@@ -1,0 +1,35 @@
+#!/bin/bash
+
+NAME="$1"
+shift
+DESC="$@"
+
+HOSTNAME=$(hostname | cut -d. -f1)
+if [[ $HOSTNAME != "ulminfo" ]]
+then
+  exec ssh ulminfo bin/initgit "$NAME" \"$DESC\"
+fi
+
+if [ -d "$HOME/git/${NAME}.git" ]
+then
+  echo "repository $NAME already exists?! aborting"
+  exit 42
+fi
+
+cd "$HOME/git"
+git init --bare "${NAME}.git"
+cd "${NAME}.git"
+echo "$DESC" > description
+echo "https://a3nm.net/git/$NAME/" > url
+git update-server-info
+
+cd hooks
+mv post-update.sample post-update
+ln -s "$HOME/bin/stagit-post-receive.sh" post-receive
+cd ..
+
+mkdir "$HOME/public_html/git/${NAME}"
+ln -s "$HOME/git/${NAME}.git" "$HOME/public_html/git/"
+
+chmod -R og+rx "$HOME/git/${NAME}.git"
+

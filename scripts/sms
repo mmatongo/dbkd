@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# send SMS to Free Mobile phone
+# http://www.freenews.fr/spip.php?article14817
+
+USER="$1"
+KEY="$2"
+TEMP=`mktemp`
+python -c "import sys, urllib as ul; print ul.quote_plus(sys.stdin.read())" > $TEMP
+curl -k -I 'https://smsapi.free-mobile.fr/sendmsg?user='$USER'&pass='$KEY'&msg='`cat $TEMP`
+rm -f $TEMP

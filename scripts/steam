@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# steam wrapper script
+# check that Steam is correctly sandboxed and run it in its X server
+# this script is not part of Steam and not endorsed by Valve, inc.
+
+VOLUME="/home" # where quotas are setup
+ID=`whoami`
+PRIVATE="/home/$ID/.ssh/id_rsa" # an existing file that you want to protect
+QUOTA="8192000" # steam's quota, in bytes
+DCMD="sudo su steam -s /bin/bash -c"
+PRIVPORT="23" # a port that steam shouldn't be able to access
+
+if groups steam | tr -d ':' | tr ' ' '\n' | grep -v '^$' |
+    grep -vE '^(steam|video|audio)$'> /dev/null
+then
+  echo "steam should be in group steam video audio, actual groups are:"
+  groups steam
+  echo aborted
+  exit 1
+fi
+
+if [ ! -f "$PRIVATE" ]
+then
+  echo "\$PRIVATE is not correctly set: cannot reach $PRIVATE"
+  echo aborted
+  exit 2
+fi
+
+if $DCMD "ls $PRIVATE >/dev/null 2>/dev/null"
+then
+  echo "steam shouldn't be able to access $PRIVATE"
+  echo aborted
+  exit 2
+fi
+
+if ! (quotaon -p "$VOLUME" | grep '^user' | grep 'is on' >/dev/null)
+then
+  echo "quotas are not enabled for $VOLUME:"
+  quotaon -p "$VOLUME"
+  echo aborted
+  exit 5
+fi
+
+RQUOTA=$($DCMD "quota --show-mntpoint" |
+  grep -A1 "$VOLUME" | sed 1d | awk '{print $3}' | tr -dc '0-9\n')
+
+# http://stackoverflow.com/a/806923
+re='^[0-9]+$'
+if ! [[ $RQUOTA =~ $re ]]
+then
+  echo "could not understand quota for steam"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if [ ! "$RQUOTA" -gt 0 ]
+then
+  echo "no quota for steam seems set"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if [ ! "$RQUOTA" -le "$QUOTA" ]
+then
+  echo "quota limit for steam is $RQUOTA which is >$QUOTA"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if ! ($DCMD "cat /proc/\$\$/cgroup" |
+    grep 'memory:/steam' >/dev/null)
+then
+  echo "steam processes are not in the steam cgroup for memory:"
+  $DCMD "cat /proc/\$\$/cgroup"
+  echo aborted
+  exit 7
+fi
+
+if $DCMD "curl portquiz.net:80 2>/dev/null >/dev/null"
+then
+  if $DCMD "curl portquiz.net:$PRIVPORT 2>/dev/null >/dev/null"
+  then
+    echo "steam port $PRIVPORT is not filtered"
+    echo aborted
+    exit 8
+  fi
+else
+  echo "steam cannot access portquiz.net:80, are you connected?"
+  echo aborted
+  exit 9
+fi
+
+# now everything is OK
+
+# must tell pulseaudio to stop accessing sound devices
+pasuspender -- $DCMD "xinit -- :2"
+

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+wdiff-colours "$6" "$7"

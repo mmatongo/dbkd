@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# work around the problems induced by wrong LaTeX highlighting missing some
+# typos
+
+# also close files automatically if there is no typo
+
+# TODO: use tabs? https://vi.stackexchange.com/a/17267
+
+FILE="$1"
+LANG="${2:-en}"
+
+vim -c 'syntax off' -c 'set spell' -c "set spelllang=$LANG" \
+  -S ~/config/vim/spell.vim -c ":call SpellNext()" "$FILE"
+

@@ -1,0 +1,8 @@
+#!/bin/sh
+# takes a wrapper script name and returns the wrapped program on stdout
+
+oldpath=${PATH}
+here=`dirname $1`
+export PATH=`echo ${PATH} | sed -e "s_${here}:__g"`
+which `basename $1`
+export PATH=${oldpath}

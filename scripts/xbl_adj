@@ -1,0 +1,18 @@
+#!/bin/bash
+# adjust backlight by an increment percentage
+
+DIR="/sys/class/backlight/intel_backlight/"
+MAX=$(cat $DIR/max_brightness)
+CUR=$(cat $DIR/brightness)
+ADJ=$1
+NEW=$(($CUR+$ADJ*$MAX/100))
+if [ $NEW -gt $MAX ]
+then
+	NEW=$MAX
+fi
+if [ $NEW -lt 0 ]
+then
+	NEW=0
+fi
+echo $NEW | tee $DIR/brightness > /dev/null
+

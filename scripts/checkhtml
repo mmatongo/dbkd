@@ -1,0 +1,15 @@
+#!/bin/bash
+tidy -utf8 -errors -xml -quiet "$1"
+A=$?
+if [ $A -ne 0 ]
+then
+exit $A
+fi
+cat -n "$1" | grep --color '< '
+A=$?
+if [ $A -ne 0 ]
+then
+exit 0
+else
+exit 1
+fi

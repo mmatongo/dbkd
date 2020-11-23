@@ -1,0 +1,16 @@
+#!/usr/bin/zsh
+
+# find a URL for a paper from a messy collection of bib files
+
+QUERY="$1"
+shift
+
+for folder in "$@"
+do
+  cd "$folder"
+  for a in **/*.bib
+  do
+    egrep -A20 '^@[A-Za-z]*{ *'$QUERY "$a" | sed -n '1,/^\s*$/p' | egrep '\\url|\\href' | sed 's/.*{\(http[^{]*\)}.*/\1/g' | tr -d '{}'
+  done
+done | sort | uniq
+
