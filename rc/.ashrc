@@ -1,0 +1,15 @@
+#!/bin/sh
+
+alias ll="ls -al"
+alias vi=vim
+alias ..="cd .."
+alias s+=sudo
+alias vim=nvim
+
+paste () {
+        curl -sF 'clbin=<'"${1:--}" https://clbin.com;
+}
+
+[ -x /usr/bin/zsh ] && exec /usr/bin/zsh
+
+source ~/.zshrc
