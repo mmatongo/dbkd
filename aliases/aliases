@@ -1,0 +1,48 @@
+# The Aliases
+
+alias juju='junest proot'
+
+# git aliases
+alias g+='git add .'
+alias gc='git commit -m'
+alias gp='git push'
+alias gP='git pull'
+alias gcb='git checkout -b'
+alias gC='git clone'
+alias gb='git checkout'
+alias gst='git status --short'
+alias gsu='git push --set-upstream origin'
+
+# kiss
+alias ki='kiss i'
+alias ku='kiss u'
+alias kb='kiss b'
+alias kc='kiss c'
+alias ko='kiss o'
+alias kn='kiss-new'
+alias kr='kiss r'
+
+# rust aliases
+alias cr='cargo run'
+alias cn='cargo new'
+alias cb='cargo build'
+
+# dotbare aliases
+alias d+='dotbare add'
+alias d..='dotbare fadd -d'
+alias d-='dotbare commit -m'
+alias dp='dotbare push -u origin master'
+alias dl='dotbare flog'
+
+# vim alias
+alias vim='nvim'
+alias vi='nvim'
+
+# l alias
+# alias ls='ls -l'
+
+# sudo alias
+alias s+='sudo'
+
+# lazy
+alias ex='exit'
