@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# chmac - Change the MAC address temporarily.
+# Must be run as root!
+# (c) Kied Llaentenn (@kiedtl)
+
+inter=$(interface)
+
+ip l set "${inter}" down
+ip l set "${inter}" address "${1}"
+
+#ifconfig wlan0 down hw ether $1
+ip l set "${inter}" up
+wfi

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# move stdin sink inputs to $1
+
+while read l
+do
+  ID=$(echo "$l" | awk '{print $1}')
+  pacmd move-sink-input "$ID" "$1"
+done
+

@@ -1,0 +1,108 @@
+#!/bin/bash
+
+# type passwords with xdotool, messages with zenity
+# usage: choose a FILE in the dmenu to type the password for it
+# type "FILE USER" to generate a new password for FILE and type it
+# (additionally storing "USER" as second line in the file)
+
+# for this script to work, you need a pinentry wrapper that prompts using GTK,
+# see e.g., my-pinentry which prompts in curses or GTK depending on environment
+
+# inspired by similar scripts, e.g.:
+# https://gist.github.com/ivyl/7429582
+# http://www.christoph-egger.org/weblog/entry/48
+# http://git.zx2c4.com/password-store/tree/contrib/dmenu/passmenu (ships with pass)
+# https://github.com/carnager/rofi-pass (much more featureful)
+
+set -x
+
+# ensure that the layout is correct
+~/bin/layout
+
+export PINENTRY_USER_DATA="gtk" 
+
+cd ~/.password-store
+
+# my-rofi is just a dmenu wrapper
+# TODO adapt depending on whether it exists or not
+RET=$(ls *.gpg | sed 's/\.gpg$//' | ~/bin/my-rofi -dmenu)
+if [ -z "$RET" ]
+then
+  # user aborted
+  exit 0
+fi
+FILE=$(echo "$RET" | awk '{print $1}')
+USER=$(echo "$RET" | awk '{print $2}')
+if [ ! -f "${FILE}.gpg" ]
+then
+  # file does not exist, create password
+  # TODO ask for confirmation
+  # TODO don't save login if not specified
+  # also save anything specified on the commandline to the file
+  echo "generate"
+  echo -e "will be replaced by password\nlogin: $USER" | pass add -m "$FILE" || {
+    zenity --error --text 'problem with pass add; aborting';
+    exit 2; }
+  PINENTRY_USER_DATA="gtk" pass generate -i -n "$FILE" 12 || {
+    zenity --error --text 'problem with pass generate; aborting';
+    exit 2; }
+  zenity --info --text "generated password for $FILE $USER, will now type it"
+fi
+
+# file now exists, retrieve password
+PASSWORD=$(pass "$FILE" | head -1)
+if [[ $USER = "login" || $USER = "user" || $USER = "fill" || $USER = "filln" ]]
+then
+  # user wanted login instead of password
+  USERDAT=$(pass "$FILE" | grep 'login:' | head -1 | grep '^login:' | cut -d ':' -f2 | cut -c 2-)
+  if [ -z $USERDAT ]
+  then
+    # try another way
+    # keep line containing '@'
+    USERDAT=$(pass "$FILE" | grep '@' | head -1 | sed 's/\(.* \)\?\([^ ]*@[^ ]*\)\( .*\)\?/\2/g')
+    if [ -z $USERDAT ]
+    then
+      # fallback to default
+      USERDAT=$(whoami)
+    fi
+  fi
+fi
+WINDOW=$(xdotool getactivewindow)
+
+function dologin() {
+  echo "type --window $WINDOW $USERDAT" | xdotool -
+}
+
+function dofill() {
+  echo "type --window $WINDOW $USERDAT" | xdotool -
+  sleep 0.1
+  echo "key --window $WINDOW Tab" | xdotool -
+  sleep 0.1
+  # delete any password which may already be autocompleted
+  seq 20 | sed 's/.*/key --window '"$WINDOW"' BackSpace/g' | xdotool -
+  sleep 0.1
+  echo "type --window $WINDOW $PASSWORD" | xdotool -
+}
+
+case $USER in
+  login)
+    dologin
+    ;;
+  user)
+    dologin
+    ;;
+  fill)
+    dofill
+    echo "key --window $WINDOW KP_Enter" | xdotool -
+    ;;
+  filln)
+    dofill
+    ;;
+  show)
+    # user wants to display password instead
+    zenity --info --text "$PASSWORD"
+    ;;
+  *)
+  echo "type --window $WINDOW $PASSWORD" | xdotool -
+esac
+

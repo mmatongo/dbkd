@@ -1,0 +1,6 @@
+#!/bin/bash
+
+pagas | cut -d ' ' -f1 | while read s; do
+  pactl set-sink-volume $s "$1"
+done
+

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# output code of a HTML redirect to $1 (should not contain ',')
+
+cat <<EOF | sed 's,URL,'$1',g'
+<!DOCTYPE html>
+<html dir="ltr" xml:lang="en-US" lang="en-US" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+  <title>Redirect</title>
+  <meta http-equiv="refresh" content="0; url=URL" />
+  </head>
+  <body>
+    <p>You are redirected to <a href="URL">URL</a>.</p>
+  </body>
+</html>
+EOF

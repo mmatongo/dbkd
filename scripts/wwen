@@ -1,0 +1,3 @@
+#!/bin/bash
+
+urxvtcdfont -e zsh -c "sr -browser=w3m wikipedia '$*'"

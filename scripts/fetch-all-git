@@ -1,0 +1,28 @@
+#!/bin/bash
+
+FOLDER=${1:-$HOME/git}
+set -e
+
+umask 022
+
+cd "$FOLDER"
+
+# awful parsing of cgit's output...
+curl 'https://a3nm.net/git/' |
+  awk "/table summary='repository list'/{flag=1;next}/<\/table>/{flag=0}flag" |
+  while read l; do 
+    NAME=$(echo "$l" | cut -d'>' -f4 | cut -d'<' -f1)
+    REPO="$NAME.git"
+    DESC=$(echo "$l" | cut -d'>' -f8 | cut -d'<' -f1)
+    if [ ! -d "$REPO" ]
+    then
+      git clone --bare "https://a3nm.net/git/$NAME" "$REPO"
+    else
+      cd "$REPO"
+      # https://stackoverflow.com/a/21331942
+      git fetch "https://a3nm.net/git/$NAME" '*:*'
+      cd ..
+    fi
+    echo "$DESC" > "$REPO/description"
+done
+

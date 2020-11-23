@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# print svn log of changes in repository $URL (except those of $USER)
+# since the latest time svn-poll was called on that repository
+# once a log has been shown, svn-poll will shut up until $USER commits
+# or svn-poll-drop is called
+
+set -e
+
+# after this many lines of failure, complain
+MAX_ERRORS="100"
+DIFF_MAX="1000"
+# drop diff after that many lines
+DIFF_MAXB=$(($DIFF_MAX+1))
+
+URL="$1"
+USER="$2"
+BASE=$(base64 <<<"$URL" | tr -d '\n')
+DIR="$HOME/temp/svn-poll/$BASE"
+FILE="$DIR/rev"
+MUTEFILE="$DIR/muted"
+ERRORS="$DIR/errors"
+TEMP=$(mktemp)
+DATE=$(date)
+
+mkdir -p "$DIR"
+
+LATEST="$(svn info "$URL" 2>$TEMP | grep Revision | cut -d' ' -f2)"
+
+# http://stackoverflow.com/a/806923/414272
+re='^[0-9]+$'
+if ! [[ $LATEST =~ $re ]] ; then
+  # importantly, don't save $LATEST then
+  # log the error
+  cat "$TEMP" >> "$ERRORS"
+  rm "$TEMP"
+  echo "$DATE: problem when fetching latest revision: got $LATEST" >>"$ERRORS"
+  # now, should we whine...
+  NERRORS=$(cat "$ERRORS" | wc -l)
+  if [ $NERRORS -gt $MAX_ERRORS ]
+  then
+    # whine
+    echo "errors encountered in the last $MAX_ERRORS attempts:" >&2
+    cat "$ERRORS" >&2
+    # reset the errors
+    echo "" > "$ERRORS"
+    exit 1
+  fi
+  # if we are here, we decided not to whine
+  exit 0
+fi
+
+if [[ -f "$FILE" ]]
+then
+  SEEN=$(cat "$FILE")
+else
+  # the first time, shut up and just store the current revision
+  echo "$LATEST" > "$FILE"
+  echo "" > "$ERRORS"
+  exit 0
+fi
+
+if [[ "$SEEN" == "$LATEST" ]]
+then
+  # nothing to do!
+  exit 0
+fi
+
+HEADER=0
+
+# ok, so we have revisions to go over...
+svn log --xml -r$(($SEEN+1)):$LATEST "$URL" |
+  xmlstarlet sel -t -m '//log/logentry' \
+  -v 'concat(@revision, " ", author/text())' -n |
+  while read revision author
+do
+  if [[ -f "$MUTEFILE" ]]
+  then
+    # we are muted (have notified a change already)
+    # if we committed, we unmute
+    if [[ "$author" == "$USER" ]]
+    then
+      rm -f "$MUTEFILE"
+    fi
+  else
+    # we are not muted: if someone else than us committed,
+    # we notify and mute
+    if [[ "$author" != "$USER" ]]
+    then
+      if [ $HEADER -eq 0 ]
+      then
+        echo "### updates on $URL ($USER) ###"
+        HEADER="1"
+      fi
+      # notify the revision
+      svn log -v -r$revision "$URL"
+      # show a diff with no colors
+      # and truncated to the right number of lines
+      svn diff --internal-diff -c$revision "$URL" | 
+        sed "${DIFF_MAX}s/.*/... cut at line $DIFF_MAX .../;${DIFF_MAXB},\$d"
+      # shut up until something new happens from $USER
+      touch "$MUTEFILE"
+    fi
+  fi
+done
+
+# now that it's been processed, save it
+echo "$LATEST" > "$FILE"
+# and reset the errors
+echo "" > "$ERRORS"
+

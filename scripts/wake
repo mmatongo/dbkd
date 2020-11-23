@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# wake machine via proxy using database
+
+MACHINE="$1"
+DB="$HOME/config/private/wakeonlan"
+
+PROXY=$(grep "^$1" "$DB" | cut -d ' ' -f2)
+MAC=$(grep "^$1" "$DB" | cut -d ' ' -f3)
+
+if [ -z "$PROXY" ]
+then
+  echo "unknown machine $MACHINE"
+else
+  ssh "$PROXY" wakeonlan "$MAC"
+fi
+

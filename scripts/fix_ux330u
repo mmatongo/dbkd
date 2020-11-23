@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# work around some quirks with the Asus Zenbook UX330U hardware
+
+# previously, needed to load 8723au, NOT r8723au
+# and recompile and install ~/apps/rtl8723*
+# but it looks like this is no longer true
+
+if [ `hostname` = gamma -o `hostname` = gamma.a3nm.net ]
+then
+  # somehow the mouse pointer doesn't always work
+  (sudo modprobe -r psmouse; sudo modprobe psmouse) &
+
+  # somehow wifi is not properly initialized
+  (sudo ifconfig wlan0 up; sudo iwconfig wlan0 mode managed; sudo service network-manager restart) &
+fi
+

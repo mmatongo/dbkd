@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# shr - ¯\_(ツ)_/¯
+# (c) Kiëd Llaentenn (@kiedtl)
+# See the COPYING for more information.
+
+printf '%s\n' "¯\_(ツ)_/¯"

@@ -1,0 +1,6 @@
+#!/bin/bash
+# merge lines as a set naively, ignoring order
+
+cat "$1" "$2" "$3" | awk '!a[$0]++' | sponge "$2"
+exit 0
+

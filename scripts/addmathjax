@@ -1,0 +1,44 @@
+#!/bin/bash
+
+TEMP=$(mktemp)
+
+CACHEDIR="$HOME/temp/addmathjax.cache"
+mkdir -p "$CACHEDIR"
+
+# a3nm-mathjax-testing follows a base debian image and included config
+# and a container must have been created with
+# sudo docker run -di --name=a3nm-mathjax-testing \
+#   a3nm-mathjax-testing bash
+#if ! sudo docker ps | grep '\sa3nm-mathjax-testing$' > /dev/null
+#then
+#  sudo docker start a3nm-mathjax-testing >/dev/null || {
+#      echo "cannot start the mathjax container" >&2; exit 3;
+#    }
+#fi
+
+cat > $TEMP
+if grep -E "class=\"math\"|class=\"tex\"|class=\"MathJax_Preview\"" $TEMP > /dev/null
+then
+  # expensive processing
+  SHA=$(sha1sum < $TEMP | cut -d ' ' -f1)
+  if [ -f "$CACHEDIR/$SHA" ]
+  then
+    # already cached
+    cat "$CACHEDIR/$SHA"
+  else
+    TEMP2=$(mktemp)
+    #sudo docker exec -i a3nm-mathjax-testing node_modules/mathjax-node/bin/page2html \
+    ~/apps/MathJax-node/bin/page2html \
+      --fontURL "https://a3nm.net/mathjax/fonts/HTML-CSS" <$TEMP >$TEMP2 || \
+    { echo "cannot run mathjax" >&2; exit 2;}
+    sed 's,<style id="MathJax_CHTML_styles">undefined</style>,,g' "$TEMP2" |
+      sed 's,<span class="mjx-char"></span>,,g' >$CACHEDIR/$SHA
+    cat "$CACHEDIR/$SHA"
+    rm -f "$TEMP2"
+  fi
+else
+  cat "$TEMP"
+fi
+
+rm -f "$TEMP"
+

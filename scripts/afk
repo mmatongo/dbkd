@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# forget gpg passphrase
+killall -s HUP gpg-agent
+
+exec xtrlock
+

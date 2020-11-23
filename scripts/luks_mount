@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+
+VOLUME="$1"
+MACHINE="$2"
+if [ -z $MACHINE ]
+then
+  COMMAND=""
+else
+  COMMAND="ssh $MACHINE"
+fi
+ID=$(duuid "$VOLUME")
+
+KEY="$HOME/credentials/$VOLUME.key"
+FOLDER="/mnt/$VOLUME"
+
+if [ -f "$KEY" ]
+then
+  cat "$KEY" | $COMMAND sudo cryptsetup luksOpen --key-file=- "$ID" "$VOLUME"
+else
+  $COMMAND sudo cryptsetup luksOpen "$ID" "$VOLUME"
+fi
+$COMMAND sudo mkdir -p "$FOLDER"
+$COMMAND sudo mount "/dev/mapper/$VOLUME" "$FOLDER"
+

@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+# adapted from https://stackoverflow.com/a/39464990/414272
+
+from email.parser import BytesParser
+from email.header import Header, decode_header
+from email.errors import HeaderParseError
+from sys import argv, stdin
+
+header = argv[1]
+
+# TODO: for some reason this does not work when piping
+message = BytesParser().parse(stdin.buffer)
+try:
+    subj = ''.join([
+        frag.decode(enc if enc else "utf-8")
+            if isinstance(frag, bytes) else frag
+                for frag, enc in decode_header(message[header])])
+except (HeaderParseError, UnicodeDecodeError): # maybe warn about error?
+    subj = message['subject'] 
+    subj = subj.decode("utf-8") if isinstance(subj, bytes) else subj
+print(subj.strip().replace('\n', ''))
+
+

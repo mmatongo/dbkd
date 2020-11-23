@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# gupd - git: update file
+# (c) Kiëd Llaentenn <kiedtl@tilde.team>
+# See the COPYING file for copyright information.
+
+[ -f "$1" ] || exit 1
+
+file="$1"
+shift
+
+git add "$file"
+git commit -m "$file: ${@:-update}"

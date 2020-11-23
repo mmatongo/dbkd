@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+cd "$HOME/git"
+for a in *;
+do
+  cd "$a"
+  nice ionice -c 3 git gc --quiet
+  cd ..
+done
+

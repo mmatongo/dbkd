@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# concatenate PDF files, introducing blank pages when necessary, for duplex
+# printing
+
+nargs=()
+
+if [ -t 1 ] ; then
+  echo "stdout should be the output file, not a terminal"
+  exit 1
+fi
+
+for f in "$@"
+do
+  nargs+=("$f")
+  NP=$(pdfinfo "$f" | grep '^Pages:' | awk '{print $2}')
+  if [ $((NP % 2)) -eq 1 ]
+  then
+    nargs+=($HOME/git/misc/blank_a4.pdf)
+  fi
+done
+
+pdftk "${nargs[@]}" cat output -
+

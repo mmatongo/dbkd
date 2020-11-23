@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# ping $1 through isup.me
+
+curl -s "isup.me/$1" | grep 'class="domain"' |
+  rev | cut -d '>' -f1 | rev |
+  sed 's/ *\([^ ][^.]*\)\./\1/g'
+

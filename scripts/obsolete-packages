@@ -1,0 +1,5 @@
+#!/bin/bash
+
+aptitude search '?obsolete' |
+  grep -vE '\s(fasd|linux-headers-*|linux-image-*|linux-kbuild-*|libdvdcss*)'
+

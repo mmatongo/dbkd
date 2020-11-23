@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# say we are interested again in $URL
+
+URL="$1"
+BASE=$(base64 <<<"$URL" | tr -d '\n')
+DIR="$HOME/temp/svn-poll/$BASE"
+MUTEFILE="$DIR/muted"
+
+rm -f "$MUTEFILE"
+

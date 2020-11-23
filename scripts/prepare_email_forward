@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+# adapted from https://stackoverflow.com/a/16509278
+
+import sys
+import os.path as op
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE, formatdate, make_msgid
+from email import encoders
+
+FROM = sys.argv[1]
+TO = sys.argv[2]
+SUBJECT = sys.argv[3]
+IN_REPLY_TO = sys.argv[4]
+FILE = sys.argv[5]
+TEXT = sys.argv[6]
+
+msg = MIMEMultipart()
+msg['From'] = FROM
+msg['To'] = TO
+msg['Date'] = formatdate(localtime=True)
+msg['Subject'] = SUBJECT
+msg['In-Reply-To'] = IN_REPLY_TO
+msg['Message-ID'] = make_msgid()
+
+msg.attach(MIMEText(TEXT))
+
+part = MIMEBase('message', "rfc822")
+with open(FILE, 'rb') as file:
+    part.set_payload(file.read())
+encoders.encode_base64(part)
+part.add_header('Content-Disposition', 'inline')
+msg.attach(part)
+
+print (msg.as_string())

@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# interface: get network interface
+# (c) Kiëd Llaentenn
+# originally from http://github.com/mitchweaver/bin
+#
+# (wifi preferred, if no wifi interface
+#  is found try to use ethernet)
+#
+
+for dev in wl ens eth enp; do
+    set -- "$(ip l | grep $dev)"
+    [ -z "$1" ] || break
+done
+
+echo "$*" | \
+    sed 's/Link//' | \
+    awk '{print $2}' | \
+    sed 's/://' | \
+    head -n 1

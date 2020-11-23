@@ -1,0 +1,11 @@
+#!/usr/bin/zsh
+
+# find URLs for all papers listed in a bib file from other bib files
+
+FILE="$1"
+shift
+
+grep '^@' "$FILE" | cut -d'{' -f2 | grep -v ':' | grep -v '=' | tr -dc 'a-z0-9\n' | 
+while read KEY; do
+  bibgeturl "$KEY" "$@" | sed "s/^/$KEY /"
+done

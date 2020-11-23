@@ -1,0 +1,8 @@
+#!/bin/bash
+
+TEMP=`mktemp`
+PSOM="${1%.pdf}.psom.pdf"
+cp $1 $1.bak
+python ~/apps/pdfsizeopt-read-only/pdfsizeopt.py --use-jbig2=false --use-pngout=false $1
+mv $PSOM $1
+

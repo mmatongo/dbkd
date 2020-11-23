@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# run command on $1, ssh'ing if necessary
+
+MACHINE=$(echo "$1" | cut -d'.' -f1)
+HOST=$(hostname | cut -d'.' -f1)
+shift
+# http://superuser.com/a/403369/77814
+quoted_args="$(printf " %q" "$@")"
+
+if [ $MACHINE = $HOST ]
+then
+  exec $quoted_args
+else
+  exec ssh -q -t $MACHINE zsh -ic \"$quoted_args\"
+fi
+
+

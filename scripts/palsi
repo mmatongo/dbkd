@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# list pulseaudio sink input, client, client string, grepping on $
+
+pacmd list-sink-inputs |
+  grep -E 'index:|client:' | paste -d" " - - |
+  grep -i "$1" | cut -d' ' -f6,8,9-
+
+

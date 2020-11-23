@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# make time wasters less attractive
+# this is like hacker news' noprocrast setting
+
+NAME="$1"
+shift
+BLOCK=7200
+GRACE=120
+WAIT=10
+DIR="$HOME/temp/throttle"
+FILE="$DIR/$NAME"
+
+mkdir -p "$DIR"
+if [ ! -f "$FILE" ]
+then
+  echo 0 > $FILE
+fi
+LAST=$(tail -1 $FILE | cut -d' ' -f1)
+PRESENT=$(date "+%s")
+DIFF=$(($PRESENT - $LAST))
+
+if [ $DIFF -gt $GRACE -a $DIFF -lt $BLOCK ]
+then
+  # throttle
+  HOURS=$(($DIFF/3600))
+  MINS=$((($DIFF%3600)/60))
+  SECS=$(($DIFF%60))
+  echo "$USER, the last time you ran $NAME was ${HOURS}h ${MINS}m ${SECS}s ago"
+  echo "i'm giving you $WAIT seconds to change your mind..."
+  sleep $WAIT
+  CODE="$RANDOM"
+  echo "... OK, if you still want to go, enter '$CODE'"
+  read text
+  if [ $text != $CODE ]
+  then
+    echo "I knew you didn't really want to! see you again later"
+    exit 0
+  fi
+fi
+
+# run command
+date "+%s # start" >> $FILE
+"$@"
+CODE="$?"
+# store the end date
+# TODO should be a signal because we don't close cleanly
+date "+%s # stop" >> $FILE
+
+
+exit "$CODE"
+

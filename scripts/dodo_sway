@@ -1,0 +1,10 @@
+#!/bin/bash
+
+sudo echo
+
+~/bin/afk_sway &
+
+sudo pm-suspend
+
+synclient TapButton2=2
+

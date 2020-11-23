@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# this seems needed to make it work with urxvt...
+# see https://unix.stackexchange.com/q/90399
+echo
+sleep 0.04
+HOSTNAME=$(hostname | cut -d '.' -f1)
+FOLDER="$HOME/config/private/mutt"
+FILE="$FOLDER/machines/$HOSTNAME"
+
+if [ -f "$FILE" ]
+then
+  # local email
+  # -e "push '<limit>~(! ~D)<enter>G'"
+  neomutt -F "$FILE" "$@"
+else
+  # remote email
+  # -e "push '<limit>~(! ~D)<enter>G'"
+  neomutt -F "$FOLDER/imap" "$@"
+fi
+

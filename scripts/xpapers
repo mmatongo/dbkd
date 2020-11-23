@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# open a paper
+# my-rofi is just a dmenu wrapper
+
+set -x
+
+PAPERS="$HOME/useful/papers/"
+RET=$(ls "$PAPERS" | grep '\.pdf$' | sed 's/\.pdf$//' | ~/bin/my-rofi -dmenu)
+exec xdg-open "$PAPERS/$RET.pdf"
+

@@ -1,0 +1,207 @@
+#!/bin/bash
+
+# skype wrapper script
+# check that Skype is correctly sandboxed and start it or stop it
+# this script is not part of Skype and not endorsed by Microsoft, inc.
+# use as: skype start, skype stop, skype status
+# inspired by http://pleonasm.info/blog/2012/10/privilege-separation-with-xpra/
+
+# sandbox user is "skype"
+VOLUME="/home" # where quotas are setup
+ID=`whoami`
+PRIVATE="/home/$ID/.ssh/id_rsa" # an existing file that you want to protect
+QUOTA="512000" # skype's quota, in bytes
+DCMD="sudo su skype -s /bin/bash -c"
+PRIVPORT="23" # a port that skype shouldn't be able to access
+
+if groups skype | tr -d ':' | tr ' ' '\n' | grep -v '^$' |
+    grep -v skype > /dev/null
+then
+  echo "skype should be in group skype, actual groups are:"
+  groups skype
+  echo aborted
+  exit 1
+fi
+
+if [ ! -f "$PRIVATE" ]
+then
+  echo "\$PRIVATE is not correctly set: cannot reach $PRIVATE"
+  echo aborted
+  exit 2
+fi
+
+if $DCMD "ls $PRIVATE >/dev/null 2>/dev/null"
+then
+  echo "skype shouldn't be able to access $PRIVATE"
+  echo aborted
+  exit 2
+fi
+
+BADL=$(xhost | sed 1d | grep -v "SI:localuser:$ID" |
+  grep -vE 'SI:localuser:(browser|browser2|bitcoin)' | wc -l)
+if [ $BADL -gt 0 ]
+then
+  echo "bad xhost permissions:"
+  xhost
+  echo aborted
+  exit 3
+fi
+
+# somehow this stuff does not work when using xinit
+# even when setting it up with xhost in ~/bin/startup
+# but using startx makes it work
+if $DCMD xinput 2>/dev/null >/dev/null
+then
+  echo "skype shouldn't be able to connect to the X server but can:"
+  $DCMD xinput
+  echo aborted
+  exit 4
+fi
+
+if ! (quotaon -p "$VOLUME" | grep '^user' | grep 'is on' >/dev/null)
+then
+  echo "quotas are not enabled for $VOLUME:"
+  quotaon -p "$VOLUME"
+  echo aborted
+  exit 5
+fi
+
+RQUOTA=$($DCMD "quota --show-mntpoint" |
+  grep -A1 "$VOLUME" | sed 1d | awk '{print $3}' | tr -dc '0-9\n')
+
+# http://stackoverflow.com/a/806923
+re='^[0-9]+$'
+if ! [[ $RQUOTA =~ $re ]]
+then
+  echo "could not understand quota for skype"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if [ ! "$RQUOTA" -gt 0 ]
+then
+  echo "no quota for skype seems set"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if [ ! "$RQUOTA" -le "$QUOTA" ]
+then
+  echo "quota limit for skype is $RQUOTA which is >$QUOTA"
+  $DCMD "quota --show-mntpoint"
+  echo aborted
+  exit 6
+fi
+
+if ! ($DCMD "cat /proc/\$\$/cgroup" |
+    grep 'memory:/skype' >/dev/null)
+then
+  echo "skype processes are not in the skype cgroup for memory:"
+  $DCMD "cat /proc/\$\$/cgroup"
+  echo aborted
+  exit 7
+fi
+
+if $DCMD "curl portquiz.net:80 2>/dev/null >/dev/null"
+then
+  if $DCMD "curl portquiz.net:$PRIVPORT 2>/dev/null >/dev/null"
+  then
+    echo "skype port $PRIVPORT is not filtered"
+    echo aborted
+    exit 8
+  fi
+else
+  echo "skype cannot access portquiz.net:80, are you connected?"
+  echo aborted
+  exit 9
+fi
+
+# now everything is in order
+
+# check that skype has access to the pulse socket
+# and complain otherwise
+# TODO can we do better than this?
+SOCKET=$(pacmd info | grep 'socket=' | cut -d'=' -f2 | cut -d'>' -f1)
+if [ "x$SOCKET" = "x" ];
+then
+  echo "WARNING: unable to determine pulseaudio socket location"
+  echo "Continuing nevertheless"
+else
+  $DCMD "ls $SOCKET > /dev/null" || {
+    echo "WARNING: skype user cannot access the socket $SOCKET"
+    echo "this may result in sound issues"
+    echo "continuing nevertheless"
+  }
+fi
+  
+LISTCMD="pgrep -u skype"
+# don't hang looking for .Xauthority at the wrong place
+export XAUTHORITY="/home/skype/.Xauthority"
+DISPLAYNUM=213 # X display number for skype
+LOG="/home/skype/xpra/:${DISPLAYNUM}.log"
+
+case "$1" in
+start)
+  echo "starting skype..."
+  $DCMD "xpra --no-pulseaudio --encoding=rgb24 \
+    --mmap-group --socket-dir=/home/skype/xpra \
+    start :$DISPLAYNUM 2>&1"
+  # ugly, can we do better?
+  echo "waiting for session to be ready..."
+  $DCMD "tail -f $LOG" | while read l
+  do
+    echo "xpra> $l"
+    if echo "$l" | grep "xpra is ready" > /dev/null
+    then
+      echo "done waiting"
+      $DCMD "pkill -u skype tail"
+      break
+    fi
+  done
+  echo "session is ready"
+  # give me access to the server
+  USER=$(whoami)
+  $DCMD "DISPLAY=:$DISPLAYNUM xhost +si:localuser:$USER"
+  # give access to the pulseaudio credentials
+  pax11publish -D :$DISPLAYNUM -e
+  echo "running skype"
+  # run skype
+  $DCMD "DISPLAY=:$DISPLAYNUM /home/skype/skype/skype" &
+  ;&
+attach)
+  echo "attaching"
+  xpra --socket-dir=~skype/xpra attach :$DISPLAYNUM
+  ;&
+detach)
+  echo "detaching"
+  xpra --socket-dir=~skype/xpra detach :$DISPLAYNUM
+  ;&
+stop)
+  if $LISTCMD > /dev/null
+  then
+    echo "stopping skype..."
+    $LISTCMD | $DCMD "xargs kill"
+    sleep 2
+    if $LISTCMD > /dev/null
+    then
+      echo 'remaining processes:'
+      ps -u skype
+      echo 'will kill -9 in 2s'
+      sleep 2
+      $LISTCMD | $DCMD "xargs kill -9"
+    fi
+  fi
+  ;&
+*)
+  if $LISTCMD > /dev/null
+  then
+    echo "skype is running:"
+    ps -u skype
+  else
+    echo "skype is not running"
+  fi
+  ;;
+esac
+

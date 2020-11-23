@@ -1,0 +1,9 @@
+#!/bin/bash
+# cp file to upload directory
+
+FILE="$1"
+OFILE="${2:-$(basename $FILE)}"
+DEST=~browser2/uploads
+sudo cp -i "$FILE" "$DEST/$OFILE"
+sudo chown browser2:browser2 "$DEST/$OFILE"
+

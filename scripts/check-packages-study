@@ -1,0 +1,8 @@
+#!/bin/bash
+
+check-packages.sh | cut -f1 | while read l; do 
+  echo -e "\n\n=== $l ===\n\n";
+  grep -a --color=always -C50 -i $l ~/.history ~/logs/history*;
+  apt-cache show $l;
+done | less -R
+

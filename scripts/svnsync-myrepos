@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# synchronizes a local backup of all my svn repositories
+# $1 is the destination of the backup
+# ASSUMPTION: all the svn repositories live in ~/svn/*
+
+set -e
+
+DEST=$(realpath "$1")
+
+ls ~/svn | while read repos
+do
+  cd "$HOME/svn/$repos"
+  URL=$(svn info | grep '^URL:' | cut -d' ' -f2)
+  cd "$DEST"
+  LDEST="file://$DEST/$repos"
+  if [ ! -d "$DEST/$repos" ]
+  then
+    # https://stackoverflow.com/a/2303862
+    svnadmin create "$repos"
+    echo -ne '#!/bin/sh\nexit 0' > "$repos/hooks/pre-revprop-change"
+    chmod ugo+x "./$repos/hooks/pre-revprop-change"
+    svnsync init "$LDEST" "$URL"
+  fi
+  svnsync sync "$LDEST"
+done

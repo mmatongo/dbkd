@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+set -x
+FILE="$HOME/config/private/bluetooth"
+DEVICE="$1"
+HW=$(grep "^$DEVICE\s" "$FILE" | cut -d' ' -f2)
+if [[ -z "$HW" ]]
+then
+  >&2 echo "no registered device $DEVICE in $FILE"
+  >&2 echo "try adding one from paired devices?"
+  # echo "paired-devices" | bluetoothctl 2>/dev/null | grep '^Device'
+  exit 2
+fi
+
+
+ID=$(rfkill list | grep -i hci0 | cut -d':' -f1)
+rfkill unblock $ID
+(echo "power on"; sleep 0.1;
+echo "default-agent"; sleep 0.1;
+echo "pairable on"; sleep 0.1;
+echo "scan on"; sleep 0.1;
+echo "pair $HW"; sleep 0.5;
+echo "trust $HW"; sleep 0.5;
+echo "connect $HW"; sleep 5;
+echo quit; sleep 0.2) | bluetoothctl
+

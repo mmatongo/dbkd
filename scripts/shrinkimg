@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# shrink the (possibly compressed) ext[2-4] disk image $1
+# and compress it to $2, overwriting it
+
+# TODO: support files with multiple partitions
+
+# TODO: support zerofree
+
+# TODO: support FAT, but hard to tell it apart from partition tables
+
+if [ "$#" -ne 2 ] || ! [ -f "$1" ]; then
+  echo "Usage: $0 INPUT.img(.xz|.gz|) OUTPUT.img.xz" >&2
+  exit 8
+fi
+
+FILE="$1"
+OUT="$2"
+DIR=$(dirname $(readlink -f "$OUT"))
+# create temporary file in directory of output
+TEMP=$(mktemp -p "$DIR")
+OSIZE=$(du -h "$FILE" | cut -f1)
+
+TYPE=$(file "$FILE" | cut -d ':' -f2)
+
+case $TYPE in
+  *'XZ compressed'*)
+    unxz -kvc "$FILE" >$TEMP
+  ;;
+  *'gzip compressed'*)
+    pv -N "gunzip" "$FILE" | gzip -dc >$TEMP
+  ;;
+#  *'boot sector'*)
+#    pv -N "cp" "$FILE" >$TEMP
+#  ;;
+  *'ext'[2-4]' filesystem data'*)
+    pv -N "cp" "$FILE" >$TEMP
+  ;;
+  *)
+    echo "unknown type for $FILE: $TYPE"
+    echo "aborting"
+    exit 1
+  ;;
+esac
+
+echo "extracted/copied to $TEMP"
+
+TYPE2=$(file "$TEMP" | cut -d ':' -f2)
+OSPACE=$(du -h "$TEMP" |cut -f1)
+
+case $TYPE2 in
+  *'ext'[2-4]' filesystem data'*)
+    echo "processing $TEMP as an ext filesystem"
+    e2fsck -C0 -tt -fp "$TEMP" || {
+      echo "e2fsck errors in $TEMP, please fix"
+      echo "aborting WITHOUT removing $TEMP"
+      exit 2
+    }
+    resize2fs -p -M "$TEMP" || {
+      echo "error when resizing $TEMP";
+      echo "aborting WITHOUT removing $TEMP"
+      exit 3
+    }
+  ;;
+#  *'boot sector'*)
+#    echo "processing $TEMP as a FAT filesystem"
+#    fsck.vfat -p "$TEMP" || {
+#      echo "fsck errors in $TEMP, please fix"
+#      echo "aborting WITHOUT removing $TEMP"
+#      exit 2
+#    }
+#    SIZE=$(fatresize -i "$TEMP" | grep '^Min' | cut -d: -f2)
+#    fatresize -s $SIZE -p "$TEMP" || {
+#      echo "error when resizing $TEMP";
+#      echo "aborting WITHOUT removing $TEMP"
+#      exit 3
+#    }
+#    SIZEA=$(fatresize -i "$TEMP" | grep '^Size' | cut -d: -f2)
+#    truncate -s $SIZEA fatfs || {
+#      echo "error when truncating $TEMP";
+#      echo "aborting WITHOUT removing $TEMP"
+#      exit 4
+#    }
+#  ;;
+  *)
+    echo "unknown type after decompressing to $TEMP: $TYPE2"
+    echo "aborting WITHOUT removing $TEMP"
+    exit 1
+  ;;
+esac
+
+NSPACE=$(du -h "$TEMP" |cut -f1)
+
+case "$OUT" in
+  *.xz)
+    echo "compressing with xz"
+    (xz -9cv "$TEMP" >"$OUT") || {
+      echo "error when compressing $TEMP, please fix";
+      echo "aborting WITHOUT removing $TEMP"
+      exit 4
+    }
+    rm "$TEMP"
+    ;;
+  *)
+    echo "moving"
+    mv "$TEMP" "$OUT"
+  ;;
+esac
+
+NSIZE=$(du -h "$OUT" | cut -f1)
+
+echo "successfully shrunk $FILE to $OUT"
+echo "uncompressed apparent size went from $OSPACE bytes to $NSPACE bytes"
+echo "compressed apparent size went from $OSIZE bytes to $NSIZE bytes"
+exit 0
+

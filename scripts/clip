@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# transfer selection to X clipboard
+
+xclip -o  | xclip -i -selection clipboard
+

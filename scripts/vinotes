@@ -1,0 +1,6 @@
+#!/usr/bin/zsh
+
+. ~/.zshrc
+fontsize 20
+screen -S notes -c ~/config/screen_notes
+# TODO: run vim, do \w, disable distracting indications

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+xset r rate 200 65
+#xkbcomp ~/.xmodmaprc $DISPLAY
+xkbcomp -I$HOME/config/xkb ~/config/xkb/map $DISPLAY
+

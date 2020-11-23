@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# need to create browser2 user
+# you may also want to add the local user to the browser2 group
+
+ENDPOINT="$HOME/mnt/browser2"
+
+mkdir -p "$ENDPOINT"
+
+# replace by ACLs
+grep -qs " $ENDPOINT " /proc/mounts || (
+  echo "$ENDPOINT was not mounted, mounting it"
+  sudo bindfs --create-for-user=$(id -u browser2) \
+    --create-for-group=$(id -g browser2) \
+    --chown-deny --chgrp-deny --chmod-deny -p '700' \
+    -u $(id -u) -g $(id -g) \
+    ~browser2 "$ENDPOINT"
+)
+
+# escape all arguments; is there a better way?
+ESC=""
+for var
+do
+  ESCA=$(printf %q "$var")
+  ESC="$ESC $ESCA"
+done
+exec sudo -u browser2 sh -c "umask 007; exec firefox $ESC"
+

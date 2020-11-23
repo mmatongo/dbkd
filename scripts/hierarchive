@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e
+
+# https://stackoverflow.com/a/246128
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+cd "$DIR"
+
+# move old files from $1 to $2
+# expected usage: download/upload folder of a web browser, scratch folder, etc.
+
+NDAYS="7"
+
+D=$(date '+%Y-%m-%d')
+F="$2/$D"
+#mkdir "$F"
+cd "$1"
+# find all old files and move them away
+find -type f -mtime +$NDAYS -print0 | xargs -r -0 -n 1 "$DIR/hierarchive_file" "$F"
+
+# now, recursively remove all empty directories
+find . -type d | xargs rmdir -p 2>/dev/null
+

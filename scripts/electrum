@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -x
+ARGS="$@"
+exec sudo -u bitcoin sh -c "umask 007; QT_X11_NO_MITSHM=1 python3 /home/bitcoin/Electrum-3.3.8/run_electrum $ARGS ; chmod -R og+r ~bitcoin/.electrum"
+

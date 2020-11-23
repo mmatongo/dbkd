@@ -1,0 +1,9 @@
+#!/bin/bash
+
+sudo rm -Rfv /usr/local/bin/notmuch* /usr/local/lib/libnotmuch.so* \
+  /usr/local/include/notmuch.h /usr/local/share/emacs/site-lisp/notmuch* \
+  /usr/local/share/man/man*/notmuch* /usr/local/share/info/notmuch* \
+  /usr/local/share/zsh/functions/Completion/Unix/_notmuch \
+  /usr/local/etc/bash_completion.d/notmuch \
+  /usr/local/lib/python2.7/dist-packages/notmuch*
+
